@@ -1,40 +1,38 @@
-const monoose = require('mongoose');
-const bcrypt = require('bcrypt')
+const mongoose = require('mongoose');
 
-const userSchema = new monoose.Schema({
-    fullName : {
-        firstName : {
-            type : String,
+const userSchema = new mongoose.Schema({
+    fullName: {
+        firstName: {
+            type: String,
+            required: true
         },
-        lastName : {
-            type : String
-        }
+        lastName: {
+            type: String,
+            required: true
+        },
     },
-    email : {
-        type : String,
-        required : true,
-        unique : true
+    email: {
+        type: String,
+        required: true,
+        unique: true
     },
-    password : {
-        type : String,
-        required : true
+    password: {
+        type: String,
+        required: true
     }
 })
 
-userSchema.pre('save', async function(next){
-    const user = this;
-    const salt = await bcrypt.genSalt(10);
-    if(user.isModified('password')){
-        user.password = await bcrypt.hash(user.password, salt)
-    }
-    next();
+userSchema.pre('save', function (next) {
+    const user = this
+    if (!user.isModified('password'))return next()
+    const genSalt = bcrypt.genSaltSync(10)
+    bcrypt.hash(user.password, genSalt, (err, hash) => {
+        if (err) return next(err)
+        user.password = hash
+        next()
+    })
 })
 
-userSchema.methods.comparePassword = async function(candidatePassword){
-    const user = this;
-    return bcrypt.compare(candidatePassword, user.password)
-}
-
-const userModel = monoose.model('User', userSchema);
+const userModel = mongoose.model('user', userSchema);
 
 module.exports = userModel;

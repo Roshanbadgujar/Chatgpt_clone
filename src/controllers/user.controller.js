@@ -6,6 +6,25 @@ exports.register = async (req, res) => {
         const user = await userService.register(userData)
         res.status(201).json(user)
     } catch (error) {
-        throw new Error(error.message);
+        res.status(500).json({error : error.message});
+    }
+}
+
+exports.login = async (req, res) => {
+    try {
+        const userData = req.body
+        const user = await userService.login(userData)
+        res.status(201).json(user)
+    } catch (error) {
+        res.status(500).json({error: error.message})
+    }
+}
+
+exports.getUserProfile = async (req, res) => {
+    try {
+        const user = await userService.getUserProfile(req.user._id)
+        res.status(200).json(user)
+    } catch (error) {
+        res.status(500).json({error: error.message})
     }
 }
