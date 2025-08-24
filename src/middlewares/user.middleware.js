@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken')
+const user = require('../models/user.model')
 
-function protect(req, res, next) {
+async function protect(req, res, next) {
     const bearer = req.headers.authorization
     if (!bearer || !bearer.startsWith('Bearer ')) {
         res.status(401)
@@ -9,8 +10,9 @@ function protect(req, res, next) {
     }
     const token = bearer.split(' ')[1].trim()
     try {
-        const payload = jwt.verify(token, process.env.SECRET)
-        req.user = payload
+        const payload = jwt.verify(token, process.env.JWT_SECRET)
+        const userData = await user.findById(payload.id)
+        req.user = userData
         next() 
         return
     } catch (e) {

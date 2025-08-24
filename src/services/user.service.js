@@ -17,10 +17,9 @@ exports.register = async (userData) => {
         if(!user) {
             throw new Error('Something went wrong');
         }
-        const token = jwt.sign({_id :  user._id}, process.env.JWT_SECRET)
+        const token = jwt.sign({ id :  user._id}, process.env.JWT_SECRET)
         console.log(token);
         return {
-            user,
             token
         }
     } catch (error) {
@@ -30,13 +29,17 @@ exports.register = async (userData) => {
 
 exports.login = async (userData) => {
     try {
-        const user = await userModel.findOne(userData);
+        if (!userData) {
+            throw new Error('User data is required');
+        }
+        const {email , password} = userData;
+        const user = await userModel.findByCredentials(email , password);
+
         if(!user) {
             throw new Error('User not found');
         }
-        const token = jwt.sign({_id :  userData._id}, process.env.JWT_SECRET)
+        const token = jwt.sign({ id :  user._id}, process.env.JWT_SECRET)
         return {
-            user,
             token
         }
     } catch (error) {

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 
 const userSchema = new mongoose.Schema({
     fullName: {
@@ -32,6 +33,19 @@ userSchema.pre('save', function (next) {
         next()
     })
 })
+
+userSchema.statics.findByCredentials = async function (email, password) {
+    const user = await this.findOne({ email });
+    if (!user) {
+        throw new Error('Invalid email or password');
+    }
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+        throw new Error('Invalid email or password');
+    }
+    return user;
+};
+
 
 const userModel = mongoose.model('user', userSchema);
 
