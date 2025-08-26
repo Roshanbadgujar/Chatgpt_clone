@@ -1,12 +1,12 @@
 const messageModel = require('../models/message.model');
 
-exports.createMessage = async (userId, chatId, message, sender) => {
+exports.createMessage = async (userId, chatId, message, role) => {
     try {
         const newMessage = new messageModel({
             user : userId,
             chatId,
             message,
-            sender
+            role,
         });
         await newMessage.save();
         return newMessage;
@@ -17,7 +17,7 @@ exports.createMessage = async (userId, chatId, message, sender) => {
 
 exports.getMessages = async (userId, chatId) => {
     try {
-        const messages = await messageModel.findOne({ user: userId, chatId: chatId });
+        const messages = (await messageModel.find({ user: userId, chatId: chatId }).sort({ createdAt: -1 }).limit(20).lean()).reverse()
         return messages;
     } catch (error) {
         throw new Error(error.message);

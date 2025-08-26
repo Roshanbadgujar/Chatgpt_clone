@@ -5,9 +5,10 @@ exports.createChat = async (user, chatName) => {
         if (!user) {
             throw new Error('Invalid input');
         }
+        console.log(chatName);
         const createdChat = await chatModel.create({
             user,
-            chatName,
+            chatName : chatName,
         });
         return createdChat;
     } catch (error) {

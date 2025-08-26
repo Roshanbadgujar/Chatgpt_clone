@@ -1,16 +1,5 @@
 const chatService = require('../services/chat.service');
 
-exports.createChat = async (req, res) => {
-    try {
-        const userId = req.user._id;
-        const { chatName } = req.body;
-        const createdChat = await chatService.createChat(userId, chatName);
-        res.status(201).json(createdChat);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-}
-
 exports.getChats = async (req, res) => {
     try {
         const userId = req.user._id;

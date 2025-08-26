@@ -15,9 +15,9 @@ const messageSchema = new mongoose.Schema({
         type: String,
         required: true,
       },
-      sender: {
+      role: {
         type: String,
-        enum: ['user', 'bot'],
+        enum: ['user', 'model'],
         default: 'user',
       },
       timestamp: {
