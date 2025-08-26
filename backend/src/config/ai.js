@@ -6,19 +6,42 @@ const ai = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 const generateText = async (prompt, messageArray, chatTitles) => {
   try {
 
-    // Helper: Normalize history (skip empty messages)
+
     const normalizeHistory = (messageArray) => {
       return messageArray
         .filter((msg) => {
           const text = msg.parts?.[0]?.text || msg.content || msg.message;
           return text && text.trim().length > 0;
         })
-        .map((msg) => ({
-          role: msg.role || msg.sender, 
-          parts: [
-            { text: msg.parts?.[0]?.text || msg.content || msg.message }
-          ],
-        }));
+        .map((msg, index) => {
+          const text = msg.parts?.[0]?.text || msg.content || msg.message;
+
+          // Role normalize
+          let role = msg.role || msg.sender;
+          if (role === "assistant") role = "model";
+          if (role !== "user" && role !== "model") {
+            // Default: first msg user, rest alternate properly
+            role = index === 0 ? "user" : "model";
+          }
+
+          return {
+            role,
+            parts: [{ text }],
+            time: msg.time ? new Date(msg.time) : new Date(), // msg se time le raha
+          };
+        })
+        .sort((a, b) => {
+          const timeA = new Date(a.time).getTime();
+          const timeB = new Date(b.time).getTime();
+
+          if (timeA === timeB) {
+            // same time => user first
+            if (a.role === "user" && b.role === "model") return -1;
+            if (a.role === "model" && b.role === "user") return 1;
+            return 0;
+          }
+          return timeA - timeB;
+        });
     };
 
     const model = ai.getGenerativeModel({
@@ -49,7 +72,11 @@ Don’ts:
 
 
     const history = normalizeHistory(messageArray);
-    const chatOptions = history.length > 0 ? { history } : {};
+
+    const prepareForGemini = (history) => {
+      return history.map(({ role, parts }) => ({ role, parts }));
+    };
+    const chatOptions = prepareForGemini.length > 0 ? { prepareForGemini } : {};
     const chatReply = model.startChat(chatOptions);
 
     const replyRes = await chatReply.sendMessage(`
@@ -71,10 +98,9 @@ Tum bas ek hi cheez return karna:
 User Message: "${prompt}"
 
 Sirf ek short chat title return karo (max 5 words, no emojis, no quotes).
-    `); 
+    `);
 
     const title = titleRes.response.text().trim();
-
 
     return { reply, title };
   } catch (error) {

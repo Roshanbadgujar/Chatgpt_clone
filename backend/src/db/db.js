@@ -1,7 +1,7 @@
 const mongoose = require('mongoose')
 
 function connectToDb() {
-    mongoose.connect(process.env.MONOGDB_URI)
+    mongoose.connect(process.env.MONGODB_URI)
     .then(() => {
         console.log('db is live')
     }).catch((err) => {

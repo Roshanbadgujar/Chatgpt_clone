@@ -28,7 +28,8 @@ exports.sendMessage = async (messages, user) => {
     if (getMessages.length > 0) {
       messageArray = getMessages.map((msg) => ({
         role: msg.role,
-        content: msg.message
+        content: msg.message,
+        time : msg.timestamp
       }));
     }
 
@@ -47,6 +48,9 @@ exports.sendMessage = async (messages, user) => {
       throw new Error("Chat not found");
     }
 
+    if (!botResponse.reply) {
+      throw new Error("AI reply not found");
+    }
     const response = {
       chatId,
       message: botResponse.reply,
@@ -55,8 +59,6 @@ exports.sendMessage = async (messages, user) => {
     if (botResponse.title) {
       response.title = botResponse.title
     }
-
-    console.log(response);
 
     await Promise.all([
       messageService.createMessage(userId, chatId, message, 'user'),
@@ -70,14 +72,22 @@ exports.sendMessage = async (messages, user) => {
   }
 };
 
-exports.getMessages = async (userId, chatId) => {
+exports.getMessages = async (req, res) => {
   try {
+    const userId = req.user._id;
+    const chatId = req.params.chatId;
     if (!userId || !chatId) {
       throw new Error("All fields are required");
     }
-    const messages = await messageService.getMessages(userId, chatId);
-    return messages;
+    const messagesData = await messageService.getMessages(userId, chatId);
+    const messages = messagesData.map((msg) => ({
+      sender: msg.role,
+      text: msg.message,
+      time : msg.timestamp
+    }));
+    res.status(200).json(messages);
+   messages;
   } catch (error) {
-    throw new Error(error.message);
+    res.status(500).json({ error: error.message });
   }
 }

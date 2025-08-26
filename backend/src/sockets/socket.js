@@ -6,7 +6,7 @@ const messageController = require('../controllers/message.controller')
 function socket(httpServer) {
   const io = new Server(httpServer, {
     cors: {
-      origin: 'http://localhost:3000',
+      origin: 'http://localhost:5173',
       methods: ['GET', 'POST'],
       credentials: true
     }
@@ -14,7 +14,7 @@ function socket(httpServer) {
 
   io.use(async (socket, next) => {
     try {
-      const token = socket.handshake.headers?.token;
+      const token = socket.handshake.auth?.token;
       if (!token) {
         return next(new Error('Authentication error: Token missing'));
       }
@@ -36,14 +36,10 @@ function socket(httpServer) {
   });
 
   io.on('connection', (socket) => {
-
     socket.on('ai-message', async (message) => {
-        const response = await messageController.sendMessage(JSON.parse(message), socket.user);
+        const response = await messageController.sendMessage(message, socket.user);
         socket.emit('ai-message', response);
     })
-    socket.on('disconnect', () => {
-      console.log(`❌ User disconnected: ${socket.user.username || socket.user.email}`);
-    });
   });
 
   return io;

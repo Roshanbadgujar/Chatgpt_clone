@@ -49,7 +49,10 @@ exports.login = async (userData) => {
 
 exports.getUserProfile = async (userId) =>  {
     try {
-        const user = await userModel.findById(userId);
+        const user = await userModel.findById(userId).select('-password');
+        if (!user) {
+            throw new Error('User not found');
+        }
         return user;
     } catch (error) {
         throw new Error(error.message);
