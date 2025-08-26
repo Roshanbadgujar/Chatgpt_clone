@@ -19,7 +19,7 @@ export default function ChatPage() {
   // Fetch logged-in user
   const fetchUser = async (token) => {
     try {
-      const response = await axios.get("http://localhost:5000/api/auth/profile", {
+      const response = await axios.get("https://chatgpt-clone-sbne.onrender.com/api/auth/profile", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -37,7 +37,7 @@ export default function ChatPage() {
     try {
       const token = localStorage.getItem("token");
       if (!token) return;
-      const response = await axios.get("http://localhost:5000/api/chat/chat", {
+      const response = await axios.get("https://chatgpt-clone-sbne.onrender.com/api/chat/chat", {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -51,7 +51,7 @@ export default function ChatPage() {
 
   const getMessages = async (chatId) => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/message/messages/${chatId}`, {
+      const response = await axios.get(`https://chatgpt-clone-sbne.onrender.com/api/message/messages/${chatId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -94,7 +94,7 @@ export default function ChatPage() {
       setLoading(false);
     })();
 
-    socketRef.current = io("http://localhost:5000", {
+    socketRef.current = io("https://chatgpt-clone-sbne.onrender.com", {
       auth: { token },
     });
 

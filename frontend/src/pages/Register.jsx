@@ -54,7 +54,7 @@ export default function Register() {
       return;
     }
     console.log("Register Form Data:", form);
-    const { data } = await axios.post("http://localhost:5000/api/auth/register", form);
+    const { data } = await axios.post("https://chatgpt-clone-sbne.onrender.com/api/auth/register", form);
     localStorage.setItem("token", data.token);
     window.location.href = "/chat";
   };

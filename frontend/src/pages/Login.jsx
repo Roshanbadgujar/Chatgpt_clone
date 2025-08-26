@@ -26,7 +26,7 @@ export default function Login() {
     setLoading(true);
     console.log(form)
     try {
-      const { data } = await axios.post("http://localhost:5000/api/auth/login", form, {
+      const { data } = await axios.post("https://chatgpt-clone-sbne.onrender.com/api/auth/login", form, {
         withCredentials: true,
       });
       localStorage.setItem("token", data.token);
