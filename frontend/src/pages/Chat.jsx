@@ -1,7 +1,7 @@
 "use client";
 import { io } from "socket.io-client";
 import { useState, useEffect, useRef } from "react";
-import { Menu, X, Plus, Send } from "lucide-react";
+import { Menu, X, Plus, Loader2, ChevronDown } from "lucide-react";
 import Loader from "../components/Loading";
 import axios from "axios";
 import ChatCard from "../components/ChatCard";
@@ -17,17 +17,19 @@ export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loadingMessage, setLoadingMessage] = useState(false);
+  const [showNewMsgBtn, setShowNewMsgBtn] = useState(false);
 
   const socketRef = useRef(null);
 
   // Fetch logged-in user
   const fetchUser = async (token) => {
     try {
-      const response = await axios.get("https://chatgpt-clone-sbne.onrender.com/api/auth/profile", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await axios.get(
+        "https://chatgpt-clone-sbne.onrender.com/api/auth/profile",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       const { data } = response;
       localStorage.setItem("user", JSON.stringify(data));
       setUser(data);
@@ -37,68 +39,88 @@ export default function ChatPage() {
     }
   };
 
-  const getchats = async () => {
+  const getChats = async () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) return;
-      const response = await axios.get("https://chatgpt-clone-sbne.onrender.com/api/chat/chat", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+      const response = await axios.get(
+        "https://chatgpt-clone-sbne.onrender.com/api/chat/chat",
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }
+      );
       const { data } = response;
-      setChats(data);
+      setChats(data.reverse()); // latest chats top
     } catch (error) {
       console.log(error);
     }
-  }
+  };
 
   const getMessages = async (chatId) => {
     try {
-      const response = await axios.get(`https://chatgpt-clone-sbne.onrender.com/api/message/messages/${chatId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+      const response = await axios.get(
+        `https://chatgpt-clone-sbne.onrender.com/api/message/messages/${chatId}`,
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }
+      );
       const { data } = response;
       setMessages(data);
     } catch (error) {
       console.log(error);
     }
-  }
+  };
+
+  // 🆕 New Chat Handler
+  const handleNewChat = () => {
+    if (loadingMessage) return; // prevent while AI typing
+    const alreadyTemp = chats.find((c) => c._id.startsWith("temp-"));
+    if (alreadyTemp) return; // prevent multiple temp chats
+
+    const newChat = {
+      _id: `temp-${Date.now()}`,
+      chatName: "New Chat",
+      isTemp: true,
+    };
+
+    setChats((prev) => [newChat, ...prev]);
+    setActiveChat(newChat._id);
+    setMessages([]);
+
+    // close sidebar on mobile
+    setSidebarOpen(false);
+  };
 
   const handleSend = (e) => {
     e.preventDefault();
     if (!input.trim()) return;
 
-
-    // Message payload
     const message = { message: input };
-    if (activeChat) {
-      message.chatId = activeChat; // send only if already exists
+    if (activeChat && !activeChat.startsWith("temp-")) {
+      message.chatId = activeChat;
     }
 
-    // Emit to server
     socketRef.current.emit("ai-message", message);
 
-    // Add user message locally
-    setMessages((prev) => [...prev, { sender: "User", text: input, time: new Date() }]);
+    setMessages((prev) => [
+      ...prev,
+      { sender: "User", text: input, time: new Date() },
+    ]);
     setInput("");
+    setLoadingMessage(true);
 
-    // Show chat loader
-  setLoadingMessage(true);
-  chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight + 100;
+    chatContainerRef.current.scrollTop =
+      chatContainerRef.current.scrollHeight + 100;
   };
 
-
-  // Initialize socket once
+  // Initialize socket
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return (window.location.href = "/login");
 
     (async () => {
       await fetchUser(token);
-      await getchats();
+      await getChats();
       setLoading(false);
     })();
 
@@ -107,18 +129,30 @@ export default function ChatPage() {
     });
 
     socketRef.current.on("ai-message", (msg) => {
+      // replace temp chat with real one
+      if (msg.chatId) {
+        setActiveChat((prev) =>
+          !prev || prev.startsWith("temp-") ? msg.chatId : prev
+        );
 
-      if (msg.chatId && !activeChat) {
-        setActiveChat(msg.chatId);
+        setChats((prev) => {
+          const tempIndex = prev.findIndex((c) => c._id.startsWith("temp-"));
+          if (tempIndex !== -1) {
+            const updated = [...prev];
+            updated[tempIndex] = { _id: msg.chatId, chatName: msg.title };
+            return updated;
+          }
+          const exists = prev.find((c) => c._id === msg.chatId);
+          if (exists) return prev;
+          return [{ _id: msg.chatId, chatName: msg.title }, ...prev];
+        });
       }
 
-      setChats((prev) => {
-        const exists = prev.find((c) => c._id === msg.chatId);
-        if (exists) return prev;
-        return [...prev, { _id: msg.chatId, chatName: msg.title }];
-      });
-
-      setMessages((prev) => [...prev, { sender: msg.sender || "AI", text: msg.message, time: new Date() }]);
+      setMessages((prev) => [
+        ...prev,
+        { sender: msg.sender || "AI", text: msg.message, time: new Date() },
+      ]);
+      setLoadingMessage(false);
     });
 
     return () => {
@@ -127,44 +161,82 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
-    if (activeChat) {
+    if (activeChat && !activeChat.startsWith("temp-")) {
       getMessages(activeChat);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeChat]);
 
+  // Scroll detector for floating button
+  useEffect(() => {
+    const el = chatContainerRef.current;
+    if (!el) return;
 
-  if (loading) {
-    return <Loader />;
-  }
+    const handleScroll = () => {
+      const nearBottom =
+        el.scrollHeight - el.scrollTop - el.clientHeight < 150;
+      setShowNewMsgBtn(!nearBottom);
+    };
+
+    el.addEventListener("scroll", handleScroll);
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Close sidebar when clicking outside (mobile only)
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        sidebarOpen &&
+        !e.target.closest(".sidebar") &&
+        !e.target.closest(".toggle-sidebar")
+      ) {
+        setSidebarOpen(false);
+      }
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [sidebarOpen]);
+
+  if (loading) return <Loader />;
 
   return (
-    <div className="flex h-screen bg-[url(./wallpaper.jpeg)] bg-cover  text-white">
+    <div className="flex h-screen bg-[url(./wallpaper.jpeg)] bg-cover text-white">
       {/* Sidebar */}
       <div
-        className={`fixed md:static inset-y-0 left-0 w-64 bg-[#6b6a7536] backdrop-blur-xl transform transition-transform duration-300 z-40 ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-          }`}
+        className={`sidebar fixed md:static inset-y-0 left-0 w-64 bg-[#6b6a7536] backdrop-blur-xl transform transition-transform duration-300 z-40 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        }`}
       >
         <div className="p-4 flex items-center justify-between border-b border-white/10">
           <h2 className="text-lg font-bold">💬 Chats</h2>
+          {/* Desktop → show New Chat, Mobile → show Close */}
           <button
-            onClick={() => setSidebarOpen(false)}
-            className="md:hidden p-2 rounded-lg hover:bg-white/10"
+            onClick={() =>
+              window.innerWidth >= 768 ? handleNewChat() : setSidebarOpen(false)
+            }
+            className="p-2 rounded-lg hover:bg-white/10"
           >
-            <X size={18} />
+            {window.innerWidth >= 768 ? (
+              <Plus size={18} />
+            ) : (
+              <X size={18} />
+            )}
           </button>
         </div>
 
         {/* Chats List */}
-        <div id="chat-container" className="overflow-y-auto h-[calc(100%-80px)] p-3 space-y-2">
+        <div className="overflow-y-auto h-[calc(100%-80px)] p-3 space-y-2">
           {chats.map((chat) => (
             <div
               key={chat._id}
-              onClick={() => setActiveChat(chat._id)}
-              className={`px-3 py-2 text-sm rounded-lg cursor-pointer transition-all ${activeChat === chat._id
-                ? "bg-red-600/50 text-white shadow-lg"
-                : "bg-white/5 hover:bg-white/10"
-                }`}
+              onClick={() => {
+                if (!loadingMessage) setActiveChat(chat._id);
+                setSidebarOpen(false);
+              }}
+              className={`px-3 py-2 text-sm rounded-lg cursor-pointer transition-all ${
+                activeChat === chat._id
+                  ? "bg-red-600/50 text-white shadow-lg"
+                  : "bg-white/5 hover:bg-white/10"
+              }`}
             >
               {chat.chatName}
             </div>
@@ -178,13 +250,13 @@ export default function ChatPage() {
         <div className="md:hidden p-3 border-b border-white/10 flex items-center justify-between bg-red-500/50 backdrop-blur-xl">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 rounded-lg hover:bg-white/10"
+            className="toggle-sidebar p-2 rounded-lg hover:bg-white/10"
           >
             <Menu size={22} />
           </button>
           <h2 className="text-sm font-bold">Chat</h2>
           <button
-            onClick={() => setActiveChat(null)}
+            onClick={handleNewChat}
             className="p-2 rounded-lg hover:bg-white/10"
           >
             <Plus size={20} />
@@ -192,7 +264,10 @@ export default function ChatPage() {
         </div>
 
         {/* Messages */}
-        <div  ref={chatContainerRef} className="h-[100%] w-fit md:pb-[15%] pb-[30%] relative bg-[url(./wallpaper.jpeg)] bg-fit bg-no-repeat bg-left overflow-y-auto flex flex-col gap-4 p-5 ">
+        <div
+          ref={chatContainerRef}
+          className="h-[100%] md:pb-[15%] pb-[30%] relative bg-[url(./wallpaper.jpeg)] bg-fit bg-no-repeat bg-left overflow-y-auto flex flex-col gap-4 p-5"
+        >
           {messages.length === 0 && (
             <p className="text-gray-400 text-center">
               👋 Welcome! Start a conversation by typing your first message.
@@ -215,8 +290,27 @@ export default function ChatPage() {
                 <ChatCard key={idx} msg={msg} isUser={isUser} />
               );
             })}
+          {/* Loader for AI response */}
+          {loadingMessage && (
+            <div className="flex items-center gap-2 text-gray-300">
+              <Loader2 className="animate-spin" size={20} />
+              <span>AI is typing...</span>
+            </div>
+          )}
         </div>
 
+        {/* Floating new message button */}
+        {showNewMsgBtn && (
+          <button
+            onClick={() =>
+              (chatContainerRef.current.scrollTop =
+                chatContainerRef.current.scrollHeight)
+            }
+            className="absolute bottom-28 right-6 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full flex items-center gap-2 shadow-lg transition-all animate-bounce"
+          >
+            <ChevronDown size={18} /> New Messages
+          </button>
+        )}
 
         {/* Input */}
         <Input handleSend={handleSend} input={input} setInput={setInput} />
