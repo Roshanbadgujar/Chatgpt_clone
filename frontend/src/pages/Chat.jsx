@@ -4,8 +4,11 @@ import { useState, useEffect, useRef } from "react";
 import { Menu, X, Plus, Send } from "lucide-react";
 import Loader from "../components/Loading";
 import axios from "axios";
+import ChatCard from "../components/ChatCard";
+import Input from "../components/Input";
 
 export default function ChatPage() {
+  const chatContainerRef = useRef(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeChat, setActiveChat] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -13,6 +16,7 @@ export default function ChatPage() {
   const [chats, setChats] = useState([]);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
+  const [loadingMessage, setLoadingMessage] = useState(false);
 
   const socketRef = useRef(null);
 
@@ -80,6 +84,10 @@ export default function ChatPage() {
     // Add user message locally
     setMessages((prev) => [...prev, { sender: "User", text: input, time: new Date() }]);
     setInput("");
+
+    // Show chat loader
+  setLoadingMessage(true);
+  chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight + 100;
   };
 
 
@@ -131,10 +139,10 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] text-white">
+    <div className="flex h-screen bg-[url(./wallpaper.jpeg)] bg-cover  text-white">
       {/* Sidebar */}
       <div
-        className={`fixed md:static inset-y-0 left-0 w-64 bg-black/40 backdrop-blur-xl border-r border-white/10 transform transition-transform duration-300 z-40 ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        className={`fixed md:static inset-y-0 left-0 w-64 bg-[#6b6a7536] backdrop-blur-xl transform transition-transform duration-300 z-40 ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
           }`}
       >
         <div className="p-4 flex items-center justify-between border-b border-white/10">
@@ -148,13 +156,13 @@ export default function ChatPage() {
         </div>
 
         {/* Chats List */}
-        <div className="overflow-y-auto h-[calc(100%-80px)] p-3 space-y-2">
+        <div id="chat-container" className="overflow-y-auto h-[calc(100%-80px)] p-3 space-y-2">
           {chats.map((chat) => (
             <div
               key={chat._id}
               onClick={() => setActiveChat(chat._id)}
               className={`px-3 py-2 text-sm rounded-lg cursor-pointer transition-all ${activeChat === chat._id
-                ? "bg-pink-500 text-black shadow-lg"
+                ? "bg-red-600/50 text-white shadow-lg"
                 : "bg-white/5 hover:bg-white/10"
                 }`}
             >
@@ -165,9 +173,9 @@ export default function ChatPage() {
       </div>
 
       {/* Main Chat */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 w-[80%] relative flex flex-col">
         {/* Mobile Navbar */}
-        <div className="md:hidden p-3 border-b border-white/10 flex items-center justify-between bg-black/50 backdrop-blur-xl">
+        <div className="md:hidden p-3 border-b border-white/10 flex items-center justify-between bg-red-500/50 backdrop-blur-xl">
           <button
             onClick={() => setSidebarOpen(true)}
             className="p-2 rounded-lg hover:bg-white/10"
@@ -184,7 +192,7 @@ export default function ChatPage() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+        <div  ref={chatContainerRef} className="h-[100%] w-fit md:pb-[15%] pb-[30%] relative bg-[url(./wallpaper.jpeg)] bg-fit bg-no-repeat bg-left overflow-y-auto flex flex-col gap-4 p-5 ">
           {messages.length === 0 && (
             <p className="text-gray-400 text-center">
               👋 Welcome! Start a conversation by typing your first message.
@@ -204,48 +212,14 @@ export default function ChatPage() {
             .map((msg, idx) => {
               const isUser = msg.sender?.toLowerCase() === "user";
               return (
-                <div
-                  key={idx}
-                  className={`max-w-[75%] px-4 py-2 rounded-2xl shadow-md transition-all ${isUser
-                    ? "ml-auto bg-pink-500 text-black rounded-br-none"
-                    : "mr-auto bg-white/20 backdrop-blur-md rounded-bl-none"
-                    }`}
-                >
-                  <p className="text-xs font-bold opacity-70 mb-0.5">
-                    {isUser ? "You" : "AI"}
-                  </p>
-                  <p className="text-sm leading-relaxed">{msg.text}</p>
-                  <p className="text-[10px] opacity-50 mt-1 text-right">
-                    {new Date(msg.time).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
-                </div>
+                <ChatCard key={idx} msg={msg} isUser={isUser} />
               );
             })}
         </div>
 
 
         {/* Input */}
-        <form
-          onSubmit={handleSend}
-          className="p-4 border-t rounded-2xl border-white/10 bg-black/30 backdrop-blur-xl flex gap-3"
-        >
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type message..."
-            className="flex-1 px-4 py-2 text-sm bg-white/10 border border-white/20 rounded-lg focus:border-pink-400 focus:ring-2 focus:ring-pink-400/40 outline-none transition-all"
-          />
-          <button
-            type="submit"
-            className="px-5 py-2 text-sm bg-pink-500 text-black font-semibold rounded-lg hover:scale-[1.05] hover:shadow-[0_0_12px_rgba(236,72,153,0.6)] transition-all flex items-center gap-2"
-          >
-            Send <Send size={16} />
-          </button>
-        </form>
+        <Input handleSend={handleSend} input={input} setInput={setInput} />
       </div>
     </div>
   );
