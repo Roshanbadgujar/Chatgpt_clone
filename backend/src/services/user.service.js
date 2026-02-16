@@ -18,7 +18,6 @@ exports.register = async (userData) => {
             throw new Error('Something went wrong');
         }
         const token = jwt.sign({ id :  user._id}, process.env.JWT_SECRET)
-        console.log(token);
         return {
             token
         }
