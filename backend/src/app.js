@@ -2,6 +2,7 @@ const express = require('express');
 const { createServer } = require('http');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 
 const userRoutes = require('../src/routes/user.route');
 const chatRoutes = require('../src/routes/chat.route');
@@ -14,6 +15,9 @@ const app = express();
 const httpServer = createServer(app);
 
 const frontendOrigin = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
+const frontendDistPath = path.join(__dirname, '../../frontend/dist');
+const fallbackPublicPath = path.join(__dirname, '../public');
+const staticPath = fs.existsSync(frontendDistPath) ? frontendDistPath : fallbackPublicPath;
 
 app.use(
   cors({
@@ -25,7 +29,7 @@ app.use(
 socket(httpServer);
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(staticPath));
 
 app.use('/api/auth', userRoutes);
 app.use('/api/chat', chatRoutes);
@@ -33,8 +37,8 @@ app.use('/api/message', messageRoutes);
 app.use('/api/integrations', thirdPartyRoutes);
 app.use('/api/health', healthRoutes);
 
-app.get('*name', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(staticPath, 'index.html'));
 });
 
 module.exports = httpServer;

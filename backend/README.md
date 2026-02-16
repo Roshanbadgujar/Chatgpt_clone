@@ -2,6 +2,21 @@
 
 Agar aapko dekhna hai ki backend mein kya bana hai, yeh steps follow karo:
 
+
+## 0) Frontend build attach karo backend ke sath
+
+Backend ab automatically `frontend/dist` serve karta hai agar build available ho.
+
+```bash
+cd backend
+npm run build:frontend
+npm start
+```
+
+Iske baad app directly backend URL par open hogi (e.g. `http://localhost:3000`).
+
+---
+
 ## 1) Server run karo
 
 ```bash

@@ -1,28 +1,28 @@
-import { Send } from 'lucide-react'
-import React from 'react'
-const Input = ({handleSend, input, setInput}) => {
-    return (
-        <>
-            <form
-                onSubmit={handleSend}
-                className="h-[15%] absolute bottom-0 left-0 w-full p-6 flex gap-3"
-            >
-                <input
-                    type="text"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder="Type message..."
-                    className="grow px-4 py-1 text-sm bg-black border border-white/20 rounded-lg focus:border-red-600/50 focus:ring-2 focus:ring-red-600/50 outline-none transition-all"
-                />
-                <button
-                    type="submit"
-                    className="px-5 py-2 text-sm bg-red-600/50 bg-clip-padding backdrop-filter backdrop-blur-md bg-opacity-40 backdrop-saturate-60 backdrop-contrast-200  bg-blend-overlay text-white font-semibold rounded-lg hover:scale-[1.05] hover:shadow-[0_0_12px_rgba(236,72,153,0.6)] transition-all flex items-center gap-2"
-                >
-                    Send <Send size={16} />
-                </button>
-            </form>
-        </>
-    )
-}
+import { Send } from 'lucide-react';
 
-export default Input
+const Input = ({ handleSend, input, onInputChange, disabled }) => {
+  return (
+    <form onSubmit={handleSend} className="absolute bottom-0 left-0 w-full p-4 md:p-6">
+      <div className="mx-auto flex max-w-4xl items-center gap-3 rounded-2xl border border-white/20 bg-black/40 p-2 backdrop-blur-xl">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => onInputChange(e.target.value)}
+          placeholder="Dil ki baat type karo..."
+          disabled={disabled}
+          className="h-11 grow rounded-xl border border-transparent bg-transparent px-4 text-sm text-white placeholder:text-white/50 outline-none focus:border-red-500/40 disabled:opacity-60"
+        />
+
+        <button
+          type="submit"
+          disabled={disabled}
+          className="inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 px-4 text-sm font-semibold text-white transition-all hover:scale-[1.03] disabled:opacity-60 disabled:hover:scale-100"
+        >
+          Send <Send size={16} />
+        </button>
+      </div>
+    </form>
+  );
+};
+
+export default Input;
